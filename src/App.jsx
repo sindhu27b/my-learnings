@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ChevronDown, BookOpen, Clock, Search, Menu, ArrowLeft, Zap, Code, Cloud, 
-  Monitor, Settings, LayoutDashboard, FileText, User, Users, ClipboardCheck, 
+import {
+  ChevronDown, BookOpen, Clock, Search, Menu, ArrowLeft, Zap, Code, Cloud,
+  Monitor, Settings, LayoutDashboard, FileText, User, Users, ClipboardCheck,
   HelpCircle, Feather, ArrowRight, X, Trash2, Edit, Save, PlusCircle, Globe
 } from 'lucide-react';
 // --- Firebase Imports ---
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { 
-  getAuth, 
-  signInAnonymously, 
-  signInWithCustomToken, 
-  onAuthStateChanged 
+// Removed getAnalytics as it wasn't being used
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+  onAuthStateChanged
 } from "firebase/auth";
-import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
+import {
+  getFirestore,
+  doc,
+  getDoc,
   getDocs,
-  addDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  collection, 
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  collection,
   query,
   setLogLevel
 } from "firebase/firestore";
@@ -124,8 +124,8 @@ const RichTextEditor = ({ value, onChange }) => {
             [{ 'color': [] }, { 'background': [] }],       // Color dropdowns
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
             [{ 'align': [] }],
-            ['link', 'image', 'code-block'],             // MODIFIED: Added 'code-block'
-            ['clean']                                    // Remove formatting
+            ['link', 'image', 'code-block'],           // MODIFIED: Added 'code-block'
+            ['clean']                                         // Remove formatting
         ],
         syntax: true, // Enable syntax highlighting module
     }), []);
@@ -195,18 +195,20 @@ const RichTextEditor = ({ value, onChange }) => {
             // and the content is different, update the editor.
             if (value !== quillInstanceRef.current.root.innerHTML) {
                 const currentSelection = quillInstanceRef.current.getSelection();
-                quillInstanceRef.current.clipboard.dangerouslyPasteHTML(value);
+                // Use clipboard.dangerouslyPasteHTML to set content, as it handles rich text
+                // Set value to an empty string if it's null or undefined to avoid errors
+                quillInstanceRef.current.clipboard.dangerouslyPasteHTML(value || '');
                 // Restore selection after paste
                 if (currentSelection) {
                      setTimeout(() => {
-                        if (quillInstanceRef.current) {
-                            try {
-                                quillInstanceRef.current.setSelection(currentSelection);
-                            } catch (e) {
-                                // Fails if editor is no longer in DOM, which is fine
-                            }
-                        }
-                    }, 0);
+                         if (quillInstanceRef.current) {
+                             try {
+                                 quillInstanceRef.current.setSelection(currentSelection);
+                             } catch (e) {
+                                 // Fails if editor is no longer in DOM, which is fine
+                             }
+                         }
+                     }, 0);
                 }
             }
         }
@@ -266,20 +268,37 @@ const ADMIN_VIEWS = {
 /**
  * Renders a standard modal for displaying messages.
  */
-const CustomModal = ({ title, message, onClose }) => (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-[100] flex justify-center items-center p-4">
-        <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl space-y-4 border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-            <p className="text-gray-600">{message}</p>
-            <button
-                onClick={onClose}
-                className="w-full bg-indigo-700 text-white font-semibold py-2 rounded-lg hover:bg-indigo-800 transition"
-            >
-                Close
-            </button>
+const CustomModal = ({ title, message, onClose, type = 'info' }) => {
+    // Determine colors based on type
+    let titleColor = 'text-gray-900';
+    let buttonClass = 'bg-indigo-700 hover:bg-indigo-800';
+    let topBorderClass = 'border-indigo-500'; // Default info border
+
+    if (type === 'success') {
+        titleColor = 'text-green-700';
+        buttonClass = 'bg-green-600 hover:bg-green-700';
+        topBorderClass = 'border-green-500';
+    } else if (type === 'error') {
+        titleColor = 'text-red-700';
+        buttonClass = 'bg-red-600 hover:bg-red-700';
+        topBorderClass = 'border-red-500';
+    }
+
+    return (
+        <div className="fixed inset-0 bg-white bg-opacity-50 z-[100] flex justify-center items-center p-4">
+            <div className={`bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl space-y-4 border border-gray-200 border-t-4 ${topBorderClass}`}>
+                <h3 className={`text-xl font-bold ${titleColor}`}>{title}</h3>
+                <p className="text-gray-600">{message}</p>
+                <button
+                    onClick={onClose}
+                    className={`w-full text-white font-semibold py-2 rounded-lg transition ${buttonClass}`}
+                >
+                    Close
+                </button>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 /**
  * Renders a modal to ask for the admin secret code.
@@ -293,7 +312,7 @@ const SecretCodeModal = ({ onSubmit, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 z-[100] flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex justify-center items-center p-4">
       <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl space-y-4 border border-gray-200">
         <h3 className="text-xl font-bold text-gray-900">Enter Admin Secret Code</h3>
         <p className="text-sm text-gray-500">You must enter the secret code to access the admin dashboard.</p>
@@ -516,7 +535,12 @@ const CourseDetailView = ({ course, onSelectLesson, onGoHome, onStartAssessment 
                     onClick={() => onSelectLesson(course, lesson)}
                     className="w-full text-left p-4 pl-8 flex items-center text-gray-700 hover:bg-gray-50 transition border-b border-gray-100 last:border-b-0"
                   >
-                    <BookOpen className="w-4 h-4 mr-3 text-indigo-700" />
+                    {/* // MODIFICATION: Show Globe icon for external docs */}
+                    {lesson.type === 'externalDoc' ? (
+                        <Globe className="w-4 h-4 mr-3 text-indigo-700" />
+                    ) : (
+                        <BookOpen className="w-4 h-4 mr-3 text-indigo-700" />
+                    )}
                     <span className='truncate'>{lesson.title}</span>
                   </button>
                 ))}
@@ -543,15 +567,32 @@ const ArticleView = ({ lesson, course, onBackToCourse }) => {
         <span className="font-semibold">Back to {course.title}</span>
       </button>
 
-      {/* MODIFIED: Added ql-snow to get styling context for code blocks etc. */}
+      {/* MODIFICATION: Conditionally render rich text or external doc link */}
       <div className="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 text-gray-900 ql-snow">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">{lesson.title}</h1>
         <div className="h-0.5 w-16 bg-indigo-700 mb-6"></div>
-        {/* Apply 'prose' class for rich text styling */}
-        <div
-          className="max-w-none text-gray-800 space-y-4 leading-relaxed ql-editor" // MODIFIED: Removed prose, rely on ql-editor
-          dangerouslySetInnerHTML={{ __html: lesson.content }}
-        />
+        
+        {(!lesson.type || lesson.type === 'richText') ? (
+            // Render Rich Text content
+            <div
+                className="max-w-none text-gray-800 space-y-4 leading-relaxed ql-editor"
+                dangerouslySetInnerHTML={{ __html: lesson.content }}
+            />
+        ) : (
+            // Render External Document link
+            <div className="text-center py-10">
+                <p className="text-lg text-gray-700 mb-6">This lesson is an external document.</p>
+                <a
+                    href={lesson.content}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-6 py-3 bg-indigo-700 text-white font-semibold rounded-lg hover:bg-indigo-800 transition shadow-lg"
+                >
+                    <Globe className="w-5 h-5 mr-2" />
+                    Open Document in New Tab
+                </a>
+            </div>
+        )}
       </div>
     </div>
   );
@@ -769,6 +810,7 @@ const AssessmentView = ({ assessment, onAssessmentComplete, onBackToCourse, cour
     );
 };
 
+
 /**
  * Renders the list of blog posts.
  */
@@ -784,10 +826,13 @@ const BlogHome = ({ blogs, onSelectBlog, adminMode, onEditBlog, onDeleteBlog }) 
                     <div>
                         <h2 className="text-xl font-bold text-indigo-700 mb-2 line-clamp-2">{blog.title}</h2>
                         <p className="text-sm text-gray-500 mb-3">By {blog.author} on {blog.date}</p>
-                         <div
-                            className="text-sm text-gray-700 mb-4 line-clamp-3 h-16 ql-editor" // Added ql-editor
-                            dangerouslySetInnerHTML={{ __html: blog.content }}
-                         />
+                         {/* MODIFIED: Added ql-snow wrapper and overflow-hidden for proper clipping and styling */}
+                        <div className="text-sm text-gray-700 mb-4 line-clamp-3 h-16 overflow-hidden ql-snow">
+                            <div
+                                className="ql-editor" // Content styles
+                                dangerouslySetInnerHTML={{ __html: blog.content }}
+                            />
+                        </div>
                         <div className="flex flex-wrap gap-2">
                             {blog.tags?.map(tag => (
                                 <span key={tag} className="text-xs font-medium bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
@@ -915,6 +960,7 @@ const AdminCourseManagement = ({
     const [newSectionTitle, setNewSectionTitle] = useState("");
     const [newLessonTitle, setNewLessonTitle] = useState("");
     const [newLessonContent, setNewLessonContent] = useState("");
+    const [newLessonType, setNewLessonType] = useState("richText"); // <-- MODIFICATION: Added lesson type state
     // --- End New State ---
 
 
@@ -930,6 +976,7 @@ const AdminCourseManagement = ({
             setShowLessonFormForSection(null);
             setNewLessonTitle("");
             setNewLessonContent("");
+            setNewLessonType("richText");
             setEditingSectionId(null);
             setEditingLessonId(null);
         } else {
@@ -938,14 +985,23 @@ const AdminCourseManagement = ({
     }, [editingCourse]);
 
     const handleSave = () => {
-        onUpdateCourse(formData);
-        setEditingCourse(null); // Clear the editing state
+        if (formData.id) {
+            // Update existing course
+            onUpdateCourse(formData);
+        } else {
+            // Create new course
+            onCreateCourse(formData, (createdCourse) => {
+                // Callback is required by the prop, but we don't
+                // need to do anything with createdCourse here.
+            });
+        }
+        setEditingCourse(null); // Clear the editing/creating state
     };
 
-    const handleCreate = () => {
+    const handleShowCreateForm = () => {
         const newCourse = {
-            title: "New Course Title",
-            description: "New Course Description",
+            title: "",
+            description: "",
             duration: "0h 0m",
             level: "Basic",
             iconName: "Zap", // Default icon name
@@ -953,10 +1009,7 @@ const AdminCourseManagement = ({
             isPublished: false,
             sections: [],
         };
-        onCreateCourse(newCourse, (createdCourse) => {
-             // After creation, enter edit mode for the new course
-            setEditingCourse(createdCourse);
-        });
+        setEditingCourse(newCourse); // This will open the form
     };
 
     // --- New Handlers for Sections and Lessons ---
@@ -1012,6 +1065,7 @@ const AdminCourseManagement = ({
         setEditingLessonId(null); // Ensure we are in "add" mode
         setNewLessonTitle("");
         setNewLessonContent("");
+        setNewLessonType("richText"); // <-- MODIFICATION: Reset type
     };
     
     const handleShowEditLessonForm = (sectionId, lesson) => {
@@ -1019,6 +1073,7 @@ const AdminCourseManagement = ({
         setEditingLessonId(lesson.id); // Ensure we are in "edit" mode
         setNewLessonTitle(lesson.title);
         setNewLessonContent(lesson.content);
+        setNewLessonType(lesson.type || "richText"); // <-- MODIFICATION: Set type from lesson
     };
 
     const handleCancelLessonForm = () => {
@@ -1026,14 +1081,15 @@ const AdminCourseManagement = ({
         setEditingLessonId(null);
         setNewLessonTitle("");
         setNewLessonContent("");
+        setNewLessonType("richText"); // <-- MODIFICATION: Reset type
     };
     // --- End Lesson Form Controls ---
 
 
     const handleSaveLesson = (sectionId) => {
-        if (!newLessonTitle || !newLessonContent) {
-            // NOTE: Replaced alert() with a console log.
-            console.warn("Lesson title and content are required.");
+        // MODIFICATION: Check content (which can be URL)
+        if (!newLessonTitle || !newLessonContent) { 
+            console.warn("Lesson title and content/URL are required.");
             return;
         }
         
@@ -1045,7 +1101,8 @@ const AdminCourseManagement = ({
                     s.id === sectionId 
                     ? { ...s, lessons: s.lessons.map(l => 
                             l.id === editingLessonId 
-                            ? { ...l, title: newLessonTitle, content: newLessonContent } 
+                            // <-- MODIFICATION: Add type to update
+                            ? { ...l, title: newLessonTitle, content: newLessonContent, type: newLessonType } 
                             : l
                         )}
                     : s
@@ -1053,10 +1110,12 @@ const AdminCourseManagement = ({
             }));
         } else {
             // This is an ADD (new lesson)
+            // <-- MODIFICATION: Add type to new lesson
             const newLesson = {
                 id: `l_${Date.now()}`,
                 title: newLessonTitle,
-                content: newLessonContent
+                content: newLessonContent,
+                type: newLessonType 
             };
             setFormData(prev => ({
                 ...prev,
@@ -1189,7 +1248,7 @@ const AdminCourseManagement = ({
                             
                             {/* Add/Edit Lesson Form (Conditional) */}
                             {showLessonFormForSection === section.id ? (
-                                <div className="p-3 bg-white rounded-lg shadow-sm space-y-2">
+                                <div className="p-3 bg-white rounded-lg shadow-sm space-y-3">
                                     <h6 className="font-semibold text-sm text-gray-900">
                                         {editingLessonId ? "Editing Lesson" : "New Lesson"}
                                     </h6>
@@ -1200,12 +1259,40 @@ const AdminCourseManagement = ({
                                         onChange={(e) => setNewLessonTitle(e.target.value)}
                                         className="w-full p-2 border rounded-lg bg-white text-gray-900 border-gray-300"
                                     />
-                                    {/* === RICH TEXT EDITOR === */}
-                                    <RichTextEditor
-                                        value={newLessonContent}
-                                        onChange={(content) => setNewLessonContent(content)}
-                                    />
-                                    {/* === END RICH TEXT EDITOR === */}
+
+                                    {/* --- MODIFICATION: Lesson Type Toggle --- */}
+                                    <div className="flex space-x-2">
+                                        <button
+                                            onClick={() => setNewLessonType('richText')}
+                                            className={`flex-1 p-2 rounded-lg text-sm transition ${newLessonType === 'richText' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                                        >
+                                            Rich Text
+                                        </button>
+                                        <button
+                                            onClick={() => setNewLessonType('externalDoc')}
+                                            className={`flex-1 p-2 rounded-lg text-sm transition ${newLessonType === 'externalDoc' ? 'bg-indigo-600 text-white shadow' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                                        >
+                                            External Document Link
+                                        </button>
+                                    </div>
+
+                                    {/* --- MODIFICATION: Conditional Editor/Input --- */}
+                                    {newLessonType === 'richText' ? (
+                                        <RichTextEditor
+                                            value={newLessonContent}
+                                            onChange={(content) => setNewLessonContent(content)}
+                                        />
+                                    ) : (
+                                        <input
+                                            type="url"
+                                            placeholder="https://... (e.g., Google Doc, PDF link)"
+                                            value={newLessonContent || ''} // Handle null/undefined
+                                            onChange={(e) => setNewLessonContent(e.target.value)}
+                                            className="w-full p-2 border rounded-lg bg-white text-gray-900 border-gray-300"
+                                        />
+                                    )}
+                                    {/* --- END MODIFICATION --- */}
+                                    
                                     <div className="flex space-x-2 pt-2">
                                         <button
                                             onClick={() => handleSaveLesson(section.id)}
@@ -1267,7 +1354,7 @@ const AdminCourseManagement = ({
     return (
         <div className="space-y-4">
             <button 
-                onClick={handleCreate}
+                onClick={handleShowCreateForm}
                 className="w-full bg-indigo-700 text-white p-3 rounded-lg hover:bg-indigo-800 transition flex items-center justify-center shadow-md"
             >
                 <PlusCircle className="w-5 h-5 mr-2" /> Add New Course
@@ -1332,20 +1419,27 @@ const AdminAssessmentManagement = ({
                 options: q.options.filter(opt => opt && opt.trim() !== '')
             }))
         };
-        onUpdateAssessment(cleanedFormData);
+        
+        if (cleanedFormData.id) {
+            // Update
+            onUpdateAssessment(cleanedFormData);
+        } else {
+            // Create
+            onCreateAssessment(cleanedFormData, (createdAssessment) => {
+                // callback
+            });
+        }
         setEditingAssessment(null);
     };
 
-    const handleCreate = () => {
+    const handleShowCreateForm = () => {
         const newAssessment = {
-            title: "New Assessment Title",
+            title: "",
             courseId: courses[0]?.id || null, // Default to first course
             type: "Quiz",
             questions: [], // Start with no questions
         };
-        onCreateAssessment(newAssessment, (createdAssessment) => {
-            setEditingAssessment(createdAssessment);
-        });
+        setEditingAssessment(newAssessment);
     };
 
     const handleDeleteQuestion = (questionId) => {
@@ -1552,7 +1646,7 @@ const AdminAssessmentManagement = ({
     return (
         <div className="space-y-4">
             <button 
-                onClick={handleCreate}
+                onClick={handleShowCreateForm}
                 className="w-full bg-indigo-700 text-white p-3 rounded-lg hover:bg-indigo-800 transition flex items-center justify-center shadow-md"
             >
                 <PlusCircle className="w-5 h-5 mr-2" /> Add New Assessment
@@ -1599,21 +1693,27 @@ const AdminBlogManagement = ({
     }, [editingBlog]);
 
     const handleSave = () => {
-        onUpdateBlog(formData);
+        if (formData.id) {
+            // Update
+            onUpdateBlog(formData);
+        } else {
+            // Create
+            onCreateBlog(formData, (createdBlog) => {
+                // callback
+            });
+        }
         setEditingBlog(null);
     };
 
-    const handleCreate = () => {
+    const handleShowCreateForm = () => {
         const newBlog = {
-            title: "New Blog Post Title",
+            title: "",
             author: "Admin",
             date: new Date().toISOString().split('T')[0],
-            content: "<p>New blog post content...</p>",
-            tags: ["New"],
+            content: "<p></p>",
+            tags: [],
         };
-        onCreateBlog(newBlog, (createdBlog) => {
-            setEditingBlog(createdBlog);
-        });
+        setEditingBlog(newBlog);
     };
 
     if (editingBlog) {
@@ -1664,7 +1764,7 @@ const AdminBlogManagement = ({
     return (
         <div className="space-y-4">
             <button 
-                onClick={handleCreate}
+                onClick={handleShowCreateForm}
                 className="w-full bg-indigo-700 text-white p-3 rounded-lg hover:bg-indigo-800 transition flex items-center justify-center shadow-md"
             >
                 <PlusCircle className="w-5 h-5 mr-2" /> Add New Blog Post
@@ -1695,6 +1795,7 @@ const AdminBlogManagement = ({
  */
 const AdminPanel = ({ 
     db, appId, setModal,
+    currentAdminView, setCurrentAdminView, // <-- Use props
     courses, 
     onCreateCourse, onUpdateCourse, onDeleteCourse, 
     editingCourse, setEditingCourse,
@@ -1707,8 +1808,8 @@ const AdminPanel = ({
     onCreateBlog, onUpdateBlog, onDeleteBlog,
     editingBlog, setEditingBlog
 }) => {
-    const [currentAdminView, setCurrentAdminView] = useState(ADMIN_VIEWS.COURSES);
-
+    // const [currentAdminView, setCurrentAdminView] = useState(ADMIN_VIEWS.COURSES); // <-- REMOVED THIS
+    
     const renderAdminContent = () => {
         switch (currentAdminView) {
             case ADMIN_VIEWS.COURSES:
@@ -1777,7 +1878,7 @@ const AdminPanel = ({
                         {adminNavItems.map(item => (
                             <button
                                 key={item.id}
-                                onClick={() => setCurrentAdminView(item.id)}
+                                onClick={() => setCurrentAdminView(item.id)} // <-- This now calls the prop
                                 className={`flex items-center w-full p-3 rounded-lg transition text-sm font-medium ${
                                     currentAdminView === item.id
                                         ? 'bg-indigo-700 text-white shadow-md'
@@ -1834,6 +1935,7 @@ const App = () => {
   // --- Modal State ---
   const [modal, setModal] = useState(null);
   const [showSecretCodeModal, setShowSecretCodeModal] = useState(false);
+  const [currentAdminView, setCurrentAdminView] = useState(ADMIN_VIEWS.COURSES); // <-- ADDED THIS
 
   // --- Admin Editing State ---
   const [editingCourse, setEditingCourse] = useState(null);
@@ -1845,7 +1947,7 @@ const App = () => {
        if (!db || !appId) return null;
        // Use the public data path structure
        return collection(db, 'artifacts', appId, 'public', 'data', collectionName);
-  };
+    };
 
   // --- Firebase Initialization and Auth Effect ---
   useEffect(() => {
@@ -1856,36 +1958,37 @@ const App = () => {
         console.error("Firebase logging setup failed:", e);
     }
     
-    // Get App ID
-    const currentAppId = import.meta.env.VITE_APP_ID || 'default-app-id';
-    setAppId(currentAppId);
-
     // Load Quill/Highlight CSS globally
     loadStylesheet(QUILL_CSS_URL);
     loadStylesheet(HIGHLIGHT_CSS_URL);
 
+    // --- (MODIFICATION) Load config from Vite environment variables ---
+    const firebaseConfig = {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+      measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+    };
+
+    // Basic validation
+    if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.appId) {
+        const errorMsg = "Firebase configuration is missing or invalid. Make sure all VITE_FIREBASE_ variables are set in your .env file.";
+        console.error(errorMsg);
+        setModal({ title: "Config Error", message: errorMsg, type: 'error' });
+        return; // Stop initialization
+    }
+    
+    // Set the App ID state from the config
+    setAppId(firebaseConfig.appId);
+    // --- END MODIFICATION ---
+
     // Initialize Firebase
     try {
-        let firebaseConfig;
-        if (typeof __firebase_config !== 'undefined') {
-          // Use config from environment if available
-           firebaseConfig = JSON.parse(__firebase_config);
-        } else {
-          // Fallback to your provided config (for testing)
-           firebaseConfig = {
-            apiKey: "AIzaSyByRY6ez0euwQkSNDeIhktJc174XlgkKj8",
-            authDomain: "my-learnings-77fc2.firebaseapp.com",
-            projectId: "my-learnings-77fc2",
-            storageBucket: "my-learnings-77fc2.firebasestorage.app",
-            messagingSenderId: "258910491015",
-            appId: "1:258910491015:web:7f9a740e31ae6b2551c322",
-            measurementId: "G-FW5F9D7ME4"
-          };
-          console.warn("Using hardcoded Firebase config. This is not secure for production.");
-        }
-        
         const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app); 
+        // const analytics = getAnalytics(app); // Removed, not used
         const firestoreDb = getFirestore(app);
         const firebaseAuth = getAuth(app);
         setDb(firestoreDb);
@@ -1902,16 +2005,14 @@ const App = () => {
                 // User is signed out or not yet signed in
                 console.log("Firebase user not signed in. Attempting auth...");
                 try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        console.log("Signing in with custom token...");
-                        await signInWithCustomToken(firebaseAuth, __initial_auth_token);
-                    } else {
-                        console.log("Signing in anonymously...");
-                        await signInAnonymously(firebaseAuth);
-                    }
+                    // NOTE: The original code had a check for `__initial_auth_token`.
+                    // This is removed in favor of anonymous sign-in for a local dev setup.
+                    // If you need custom token auth, you'll need a different mechanism.
+                    console.log("Signing in anonymously...");
+                    await signInAnonymously(firebaseAuth);
                 } catch (authError) {
                     console.error("Firebase auth error:", authError);
-                    setModal({ title: "Auth Error", message: `Failed to authenticate: ${authError.message}` });
+                    setModal({ title: "Auth Error", message: `Failed to authenticate: ${authError.message}`, type: 'error' });
                 }
             }
         });
@@ -1920,12 +2021,7 @@ const App = () => {
 
     } catch (e) {
       console.error("Firebase initialization failed:", e);
-      // Check for the specific config parsing error
-      if (e.message.includes("__firebase_config")) {
-           setModal({ title: "Config Error", message: "Failed to load Firebase configuration. Please ensure the environment is set up correctly." });
-      } else {
-           setModal({ title: "Init Error", message: `Failed to initialize application: ${e.message}` });
-      }
+      setModal({ title: "Init Error", message: `Failed to initialize application: ${e.message}` });
     }
   }, []); // Empty dependency array ensures this runs only once
 
@@ -1960,7 +2056,7 @@ const App = () => {
       }, (error) => {
         console.error(`Firestore error on ${collectionName}:`, error);
         // Display the error to the user
-        setModal({ title: "Data Error", message: `Failed to load ${collectionName}. ${error.message}` });
+        setModal({ title: "Data Error", message: `Failed to load ${collectionName}. ${error.message}`, type: 'error' });
       });
       return unsubscribe;
     };
@@ -2022,7 +2118,7 @@ const App = () => {
         setSelectedAssessment(assessment);
         navigateTo(APP_VIEWS.ASSESSMENT_VIEW);
     } else {
-        setModal({ title: "Error", message: "Assessment not found!" });
+        setModal({ title: "Error", message: "Assessment not found!", type: 'error' });
     }
   };
 
@@ -2060,7 +2156,7 @@ const App = () => {
       navigateTo(APP_VIEWS.ADMIN_PANEL);
     } else {
       setShowSecretCodeModal(false); 
-      setModal({ title: "Access Denied", message: "The secret code is incorrect." });
+      setModal({ title: "Access Denied", message: "The secret code is incorrect.", type: 'error' });
     }
   };
   
@@ -2082,138 +2178,138 @@ const App = () => {
   
   // --- Courses ---
   const handleCreateCourse = async (courseData, callback) => {
-       const collRef = getCollectionRef('courses');
-       if (!collRef) return;
-       try {
-           const docRef = await addDoc(collRef, courseData);
-           setModal({ title: "Success", message: "Course created!" });
-           callback({ ...courseData, id: docRef.id }); // Pass new doc back
-       } catch (e) {
-           console.error("Error creating course:", e);
-           setModal({ title: "Error", message: `Failed to create course: ${e.message}` });
-       }
+      const collRef = getCollectionRef('courses');
+      if (!collRef) return;
+      try {
+          const docRef = await addDoc(collRef, courseData);
+         setModal({ title: "Success", message: "Course created!", type: 'success' });
+          callback({ ...courseData, id: docRef.id }); // Pass new doc back
+      } catch (e) {
+          console.error("Error creating course:", e);
+          setModal({ title: "Error", message: `Failed to create course: ${e.message}`, type: 'error' });
+      }
   };
   
   const handleUpdateCourse = async (courseData) => {
-       const docRef = getDocRef('courses', courseData.id);
-       if (!docRef) return;
-       const { id, ...dataToUpdate } = courseData; // Don't save ID inside the doc
-       try {
-           await setDoc(docRef, dataToUpdate);
-           setModal({ title: "Success", message: "Course updated!" });
-       } catch (e) {
-           console.error("Error updating course:", e);
-           setModal({ title: "Error", message: `Failed to update course: ${e.message}` });
-       }
+      const docRef = getDocRef('courses', courseData.id);
+      if (!docRef) return;
+      const { id, ...dataToUpdate } = courseData; // Don't save ID inside the doc
+      try {
+          await setDoc(docRef, dataToUpdate);
+          setModal({ title: "Success", message: "Course updated!", type: 'success' });
+      } catch (e) {
+          console.error("Error updating course:", e);
+          setModal({ title: "Error", message: `Failed to update course: ${e.message}`, type: 'error' });
+      }
   };
 
   const handleDeleteCourse = async (id) => {
-       const docRef = getDocRef('courses', id);
-       if (!docRef) return;
-       try {
-           await deleteDoc(docRef);
-           setModal({ title: "Success", message: "Course deleted." });
-       } catch (e) {
-           console.error("Error deleting course:", e);
-           setModal({ title: "Error", message: `Failed to delete course: ${e.message}` });
-       }
+      const docRef = getDocRef('courses', id);
+      if (!docRef) return;
+      try {
+          await deleteDoc(docRef);
+          setModal({ title: "Success", message: "Course deleted.", type: 'success' });
+      } catch (e) {
+          console.error("Error deleting course:", e);
+          setModal({ title: "Error", message: `Failed to delete course: ${e.message}`, type: 'error' });
+      }
   };
 
   // --- Assessments ---
    const handleCreateAssessment = async (assessmentData, callback) => {
-       const collRef = getCollectionRef('assessments');
-       if (!collRef) return;
-       try {
-           const docRef = await addDoc(collRef, assessmentData);
-           setModal({ title: "Success", message: "Assessment created!" });
-           callback({ ...assessmentData, id: docRef.id });
-       } catch (e) {
-           console.error("Error creating assessment:", e);
-           setModal({ title: "Error", message: `Failed to create assessment: ${e.message}` });
-       }
+      const collRef = getCollectionRef('assessments');
+      if (!collRef) return;
+      try {
+          const docRef = await addDoc(collRef, assessmentData);
+          setModal({ title: "Success", message: "Assessment created!", type: 'success' });
+          callback({ ...assessmentData, id: docRef.id });
+      } catch (e) {
+          console.error("Error creating assessment:", e);
+          setModal({ title: "Error", message: `Failed to create assessment: ${e.message}`, type: 'error' });
+      }
   };
   
   const handleUpdateAssessment = async (assessmentData) => {
-       const docRef = getDocRef('assessments', assessmentData.id);
-       if (!docRef) return;
-       const { id, ...dataToUpdate } = assessmentData;
-       try {
-           await setDoc(docRef, dataToUpdate);
-           setModal({ title: "Success", message: "Assessment updated!" });
-       } catch (e) {
-           console.error("Error updating assessment:", e);
-           setModal({ title: "Error", message: `Failed to update assessment: ${e.message}` });
-       }
+      const docRef = getDocRef('assessments', assessmentData.id);
+      if (!docRef) return;
+      const { id, ...dataToUpdate } = assessmentData;
+      try {
+          await setDoc(docRef, dataToUpdate);
+          setModal({ title: "Success", message: "Assessment updated!", type: 'success' });
+      } catch (e) {
+          console.error("Error updating assessment:", e);
+          setModal({ title: "Error", message: `Failed to update assessment: ${e.message}`, type: 'error' });
+      }
   };
 
   const handleDeleteAssessment = async (id) => {
-       const docRef = getDocRef('assessments', id);
-       if (!docRef) return;
-       try {
-           await deleteDoc(docRef);
-           setModal({ title: "Success", message: "Assessment deleted." });
-       } catch (e) {
-           console.error("Error deleting assessment:", e);
-           setModal({ title: "Error", message: `Failed to delete assessment: ${e.message}` });
-       }
+      const docRef = getDocRef('assessments', id);
+      if (!docRef) return;
+      try {
+          await deleteDoc(docRef);
+          setModal({ title: "Success", message: "Assessment deleted.", type: 'success' });
+      } catch (e) {
+          console.error("Error deleting assessment:", e);
+          setModal({ title: "Error", message: `Failed to delete assessment: ${e.message}`, type: 'error' });
+      }
   };
 
   // --- Blogs ---
   const handleCreateBlog = async (blogData, callback) => {
-       const collRef = getCollectionRef('blogs');
-       if (!collRef) return;
-       try {
-           const docRef = await addDoc(collRef, blogData);
-           setModal({ title: "Success", message: "Blog post created!" });
-           callback({ ...blogData, id: docRef.id });
-       } catch (e) {
-           console.error("Error creating blog post:", e);
-           setModal({ title: "Error", message: `Failed to create blog post: ${e.message}` });
-       }
+      const collRef = getCollectionRef('blogs');
+      if (!collRef) return;
+      try {
+          const docRef = await addDoc(collRef, blogData);
+          setModal({ title: "Success", message: "Blog post created!", type: 'success' });
+          callback({ ...blogData, id: docRef.id });
+      } catch (e) {
+          console.error("Error creating blog post:", e);
+          setModal({ title: "Error", message: `Failed to create blog post: ${e.message}`, type: 'error' });
+      }
   };
   
   const handleUpdateBlog = async (blogData) => {
-       const docRef = getDocRef('blogs', blogData.id);
-       if (!docRef) return;
-       const { id, ...dataToUpdate } = blogData;
-       try {
-           await setDoc(docRef, dataToUpdate);
-           setModal({ title: "Success", message: "Blog post updated!" });
-       } catch (e) {
-           console.error("Error updating blog post:", e);
-           setModal({ title: "Error", message: `Failed to update blog post: ${e.message}` });
-       }
+      const docRef = getDocRef('blogs', blogData.id);
+      if (!docRef) return;
+      const { id, ...dataToUpdate } = blogData;
+      try {
+          await setDoc(docRef, dataToUpdate);
+          setModal({ title: "Success", message: "Blog post updated!", type: 'success' });
+      } catch (e) {
+          console.error("Error updating blog post:", e);
+          setModal({ title: "Error", message: `Failed to update blog post: ${e.message}`, type: 'error' });
+      }
   };
 
   const handleDeleteBlog = async (id) => {
-       const docRef = getDocRef('blogs', id);
-       if (!docRef) return;
-       try {
-           await deleteDoc(docRef);
-           setModal({ title: "Success", message: "Blog post deleted." });
-       } catch (e) {
-           console.error("Error deleting blog post:", e);
-           setModal({ title: "Error", message: `Failed to delete blog post: ${e.message}` });
-       }
+      const docRef = getDocRef('blogs', id);
+      if (!docRef) return;
+      try {
+          await deleteDoc(docRef);
+          setModal({ title: "Success", message: "Blog post deleted.", type: 'success' });
+      } catch (e) {
+          console.error("Error deleting blog post:", e);
+          setModal({ title: "Error", message: `Failed to delete blog post: ${e.message}`, type: 'error' });
+      }
   };
 
   
   // --- Admin Edit State Handlers ---
   const handleEditCourse = (course) => {
     setEditingCourse(course);
-    setCurrentAdminView(ADMIN_VIEWS.COURSES); // Switch to course tab
+    setCurrentAdminView(ADMIN_VIEWS.COURSES); // <-- ADDED THIS
     navigateTo(APP_VIEWS.ADMIN_PANEL); 
   };
   
   const handleEditAssessment = (assessment) => {
     setEditingAssessment(assessment);
-    setCurrentAdminView(ADMIN_VIEWS.ASSESSMENTS); // Switch to assessment tab
+    setCurrentAdminView(ADMIN_VIEWS.ASSESSMENTS); // <-- ADDED THIS
     navigateTo(APP_VIEWS.ADMIN_PANEL); 
   };
   
   const handleEditBlog = (blog) => {
     setEditingBlog(blog);
-    setCurrentAdminView(ADMIN_VIEWS.BLOGS); // Switch to blog tab
+    setCurrentAdminView(ADMIN_VIEWS.BLOGS); // <-- ADDED THIS
     navigateTo(APP_VIEWS.ADMIN_PANEL);
   };
 
@@ -2234,6 +2330,8 @@ const App = () => {
     if (adminMode && currentPage === APP_VIEWS.ADMIN_PANEL) {
         return <AdminPanel 
             db={db} appId={appId} setModal={setModal}
+            currentAdminView={currentAdminView} // <-- Pass state down
+            setCurrentAdminView={setCurrentAdminView} // <-- Pass setter down
             
             courses={courses} 
             onCreateCourse={handleCreateCourse}
@@ -2387,7 +2485,7 @@ const App = () => {
     <div className="min-h-screen bg-gray-50 flex font-inter text-gray-800">
 
       {/* Modal Overlay */}
-      {modal && <CustomModal title={modal.title} message={modal.message} onClose={() => setModal(null)} />}
+      {modal && <CustomModal title={modal.title} message={modal.message} onClose={() => setModal(null)} type={modal.type} />}
 
       {/* Secret Code Modal */}
       {showSecretCodeModal && (
