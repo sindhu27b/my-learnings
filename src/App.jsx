@@ -383,11 +383,11 @@ const HomeView = ({ onSelectCourse, courses, onNavigate, adminMode, onEditCourse
         <div className="p-4 md:p-8 space-y-10">
             <header className="space-y-3 p-4 bg-white rounded-xl shadow-lg border border-gray-200">
                 <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
-                    Welcome to your coding journey!
+                    My Notes !
                 </h1>
-                <p className="text-xl font-semibold text-indigo-700 max-w-3xl">
+                {/* <p className="text-xl font-semibold text-indigo-700 max-w-3xl">
                     Let's learn and master the technologies that shape the future.
-                </p>
+                </p> */}
             </header>
 
             <section>
